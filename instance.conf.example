@@ -1,0 +1,94 @@
+# instance.conf — Per-instance configuration (not committed to git)
+#
+# Copy this file to instance.conf and fill in your values before running setup.sh.
+# This file contains only NON-SECRET configuration. All sensitive values (passwords,
+# API keys, tokens) are managed via Docker Swarm secrets — see scripts/setup.sh.
+#
+# Usage:
+#   cp instance.conf.example instance.conf
+#   nano instance.conf
+
+# ---------------------------------------------------------------------------
+# Instance Identity
+# ---------------------------------------------------------------------------
+
+# Display name for this instance (used in logs and alerts).
+# Choose something descriptive if you run multiple instances.
+INSTANCE_NAME="my-home-server"
+
+# ---------------------------------------------------------------------------
+# Timezone
+# ---------------------------------------------------------------------------
+
+# IANA timezone string. Used by n8n for scheduling workflows.
+# Examples: America/New_York, America/Chicago, America/Los_Angeles,
+#           Europe/London, Europe/Berlin, Asia/Tokyo, Australia/Sydney
+# Full list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+TIMEZONE="America/New_York"
+
+# ---------------------------------------------------------------------------
+# Slack Integration
+# ---------------------------------------------------------------------------
+
+# Slack channel ID for alerts and human-in-the-loop (HITL) approvals.
+# Find this in Slack: right-click the channel → View channel details → Copy ID.
+# Starts with C (e.g., C08XXXXXXXX).
+SLACK_CHANNEL_ID=""
+
+# ---------------------------------------------------------------------------
+# Backup Configuration
+# ---------------------------------------------------------------------------
+
+# Where to store backups. Can be a local path or a mounted USB/NFS path.
+# The directory will be created automatically if it doesn't exist.
+# Examples:
+#   /home/server/backups          (default — local storage)
+#   /mnt/usb/home-server-backups  (USB drive)
+#   /mnt/nas/backups              (NFS mount)
+BACKUP_DESTINATION="/home/server/backups"
+
+# How many days of backups to keep. Older backups are deleted automatically.
+BACKUP_RETENTION_DAYS=30
+
+# ---------------------------------------------------------------------------
+# Cloudflare Tunnel
+# ---------------------------------------------------------------------------
+
+# Your Cloudflare Tunnel domain. This is the public hostname you configured
+# in the Cloudflare Zero Trust dashboard for this tunnel.
+# Example: myserver.example.com
+TUNNEL_DOMAIN=""
+
+# ---------------------------------------------------------------------------
+# OpenClaw — Conversational Agent
+# ---------------------------------------------------------------------------
+
+# Which messaging platform OpenClaw connects to for interactive chat.
+# Supported values: telegram, whatsapp, slack, discord, signal
+# The bot token for this platform is stored as the 'openclaw_chat_token'
+# Docker secret and is set during setup.sh.
+OPENCLAW_CHAT_PLATFORM="telegram"
+
+# Your user ID on the messaging platform. OpenClaw will ONLY respond to
+# messages from this ID — everyone else is ignored.
+# This is a critical security setting. See docs/OPENCLAW-SAFETY.md.
+#
+# How to find your ID:
+#   Telegram : message @userinfobot — it replies with your numeric user ID
+#   Slack    : Profile → ⋮ → Copy member ID (starts with U)
+#   Discord  : Settings → Advanced → Developer Mode ON, then right-click
+#              your username → Copy User ID
+#   WhatsApp : your number in international format, e.g. +12125551234
+OPENCLAW_OWNER_ID=""
+
+# Whether OpenClaw should have direct access to the PostgreSQL database.
+# Default is "false" — OpenClaw starts network-isolated from the database.
+# Set to "true" only if you need OpenClaw to query your data directly.
+# Redeploy after changing: bash scripts/deploy.sh
+# See docs/OPENCLAW-SAFETY.md for implications before enabling.
+OPENCLAW_DB_ACCESS="false"
+
+# Claude model for OpenClaw to use for conversational tasks.
+# Sonnet is recommended — cost-efficient for interactive chat.
+# Opus is available for complex reasoning but costs significantly more.
+OPENCLAW_MODEL="claude-sonnet-4-5-20250929"

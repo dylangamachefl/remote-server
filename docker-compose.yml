@@ -1,0 +1,151 @@
+version: "3.8"
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: homeserver
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  n8n:
+    image: n8nio/n8n:1.94.1
+    secrets:
+      - anthropic_api_key
+      - slack_bot_token
+      - postgres_password
+      - n8n_encryption_key
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: homeserver
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD_FILE: /run/secrets/postgres_password
+      N8N_ENCRYPTION_KEY_FILE: /run/secrets/n8n_encryption_key
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "720"
+      N8N_PORT: "5678"
+      # GENERIC_TIMEZONE is injected at deploy time from instance.conf
+      # See scripts/deploy.sh for how this is passed
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/New_York}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - internal
+      - tunnel
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - postgres
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.12.2
+    entrypoint: ["/bin/sh", "/entrypoint/cloudflared-entrypoint.sh"]
+    command: ["tunnel", "run"]
+    secrets:
+      - cloudflare_tunnel_token
+    volumes:
+      - ./scripts/cloudflared-entrypoint.sh:/entrypoint/cloudflared-entrypoint.sh:ro
+    networks:
+      - tunnel
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  dozzle:
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - tunnel
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  openclaw:
+    # NOTE: Pin to a specific release tag once stable.
+    # Use 'latest' only during initial testing. Check:
+    #   https://github.com/openclaw/openclaw/releases
+    image: ghcr.io/openclaw/openclaw:latest
+    entrypoint: ["/bin/sh", "/entrypoint/openclaw-entrypoint.sh"]
+    command: ["gateway", "--config", "/app/config/openclaw.config"]
+    secrets:
+      - anthropic_api_key
+      - openclaw_chat_token
+    volumes:
+      - openclaw_data:/data
+      - ./openclaw/skills:/app/skills:ro
+      - ./openclaw/openclaw.config:/app/config/openclaw.config:ro
+      - ./scripts/openclaw-entrypoint.sh:/entrypoint/openclaw-entrypoint.sh:ro
+    networks:
+      # OpenClaw is on 'tunnel' only by default for outbound API calls and
+      # messaging platform connections. It is intentionally NOT on 'internal'
+      # to prevent direct database access. Enable 'internal' by setting
+      # OPENCLAW_DB_ACCESS=true in instance.conf and redeploying via deploy.sh,
+      # which applies the docker-compose.openclaw-db-override.yml overlay.
+      - tunnel
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+
+networks:
+  internal:
+    driver: overlay
+    internal: true
+  tunnel:
+    driver: overlay
+
+volumes:
+  pgdata:
+  n8n_data:
+  openclaw_data:
+
+secrets:
+  postgres_password:
+    external: true
+  anthropic_api_key:
+    external: true
+  slack_bot_token:
+    external: true
+  cloudflare_tunnel_token:
+    external: true
+  n8n_encryption_key:
+    external: true
+  openclaw_chat_token:
+    external: true

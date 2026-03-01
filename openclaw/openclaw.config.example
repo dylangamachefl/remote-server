@@ -1,0 +1,89 @@
+# openclaw.config — OpenClaw gateway configuration
+#
+# IMPORTANT: Verify this template against the installed OpenClaw version before use.
+# Config format may change between releases. Check:
+#   docker run --rm ghcr.io/openclaw/openclaw:latest --help
+#   or the project documentation for the current config schema.
+#
+# API keys and tokens are NOT stored here. They are injected as environment
+# variables by scripts/openclaw-entrypoint.sh at container startup.
+#
+# Copy this file to openclaw/openclaw.config and fill in your values.
+# openclaw/openclaw.config is gitignored and will not be committed.
+
+# ---------------------------------------------------------------------------
+# AI Model
+# ---------------------------------------------------------------------------
+model:
+  # Claude model to use for reasoning and responses.
+  # Sonnet is recommended for cost efficiency on conversational tasks.
+  # Opus can be used for complex reasoning but costs significantly more.
+  # The API key is read from the ANTHROPIC_API_KEY environment variable.
+  provider: anthropic
+  name: claude-sonnet-4-5-20250929
+  # Maximum tokens per response (adjust based on your use case)
+  max_tokens: 4096
+
+# ---------------------------------------------------------------------------
+# Messaging Platform Gateway
+# ---------------------------------------------------------------------------
+gateway:
+  # Which messaging platform this instance connects to.
+  # Supported values: telegram, whatsapp, slack, discord, signal
+  # The bot token is read from the OPENCLAW_CHAT_TOKEN environment variable.
+  platform: telegram  # set from OPENCLAW_CHAT_PLATFORM in instance.conf
+
+  # Your user ID on the messaging platform. OpenClaw will ONLY respond to
+  # messages from this ID. This is a critical security setting.
+  # For Telegram: your numeric user ID (use @userinfobot to find it)
+  # For Slack: your member ID from Profile → More → Copy member ID
+  # For Discord: enable Developer Mode → right-click your name → Copy ID
+  owner_id: ""  # set from OPENCLAW_OWNER_ID in instance.conf
+
+  # Whether to respond to group chats (not just direct messages).
+  # Strongly recommended to keep this false unless you need it.
+  allow_group_chats: false
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+storage:
+  # Directory for persistent data: conversation history, agent memory, sessions.
+  # This maps to the openclaw_data Docker volume mounted at /data.
+  data_dir: /data
+
+# ---------------------------------------------------------------------------
+# Skills
+# ---------------------------------------------------------------------------
+skills:
+  # Directory containing vetted skill files. Only skills in this directory
+  # are available to the agent. This maps to the bind-mounted skills directory.
+  # See openclaw/skills/ in the repo and docs/OPENCLAW-SAFETY.md for guidance
+  # on reviewing and adding skills.
+  skills_dir: /app/skills
+
+  # Whether to allow skills to be loaded at runtime (without restart).
+  # Keep false in production to prevent unauthorized skill injection.
+  hot_reload: false
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging:
+  # Log level: debug, info, warn, error
+  level: info
+  # Log format: json (structured, good for Dozzle) or text (human-readable)
+  format: json
+
+# ---------------------------------------------------------------------------
+# Database (optional)
+# ---------------------------------------------------------------------------
+# Uncomment and configure this section only if OPENCLAW_DB_ACCESS=true
+# in instance.conf. The password is read from PGPASSWORD environment variable.
+#
+# database:
+#   host: postgres
+#   port: 5432
+#   name: homeserver
+#   user: postgres
+#   schema: openclaw  # uses a dedicated schema, does not touch n8n data

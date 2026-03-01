@@ -1,0 +1,26 @@
+version: "3.8"
+
+# docker-compose.openclaw-db-override.yml
+#
+# Apply this overlay when OPENCLAW_DB_ACCESS=true in instance.conf.
+# It adds OpenClaw to the 'internal' network so it can reach PostgreSQL.
+#
+# This file is applied automatically by scripts/deploy.sh and scripts/setup.sh
+# when OPENCLAW_DB_ACCESS=true. Do not apply manually unless you understand
+# the security implications — see docs/OPENCLAW-SAFETY.md.
+#
+# Usage (manual):
+#   docker stack deploy \
+#     -c docker-compose.yml \
+#     -c docker-compose.openclaw-db-override.yml \
+#     homeserver
+
+services:
+  openclaw:
+    secrets:
+      - anthropic_api_key
+      - openclaw_chat_token
+      - postgres_password
+    networks:
+      - tunnel
+      - internal
