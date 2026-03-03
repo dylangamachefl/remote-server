@@ -1,4 +1,4 @@
-# home-server
+# remote-server
 
 A portable, Docker Swarm-based template for running a personal AI agent server on low-power x86 hardware (Intel N100 mini PC or similar). The stack combines two agent layers: [n8n](https://n8n.io) for structured, scheduled workflows (morning digests, bank CSV monitoring, data pipelines) and [OpenClaw](https://github.com/openclaw/openclaw) as a conversational autonomous agent accessible via messaging apps (Telegram, WhatsApp, Slack, etc.). Both use Claude (via Anthropic API) as the reasoning engine and share a PostgreSQL with pgvector database for persistent state and vector search. External access is handled by Cloudflare Tunnels — no ports exposed to the internet. All secrets are managed via Docker Swarm secrets; no `.env` files with credentials are ever written to disk.
 
